@@ -18,7 +18,7 @@ This is an extension of an existing paper on a related but different dataset, no
 ### H1 and H2 by period
 
 <p align="center">
-  <img src="figures/fig_h1_h2_by_window.png" alt="H1 and H2 slope estimates by period with 95% confidence intervals" width="95%">
+  <img src="images/fig_h1_h2_by_window.png" alt="H1 and H2 slope estimates by period with 95% confidence intervals" width="95%">
 </p>
 
 *Left: H1 slopes by period for four outcomes (raw yield change on all events, raw yield change on events with a shock, government-adjusted shock, government yield move). Right: H2 slopes by period for stale events. Bars are 95% confidence intervals clustered by ISIN. The wide bands in the pre-COVID and crisis periods are the main limit on what can be said about H2 around COVID.*
@@ -34,7 +34,7 @@ A Wald test rejects equal H1 slopes across the four periods for the raw yield ch
 ### H2 by duration group
 
 <p align="center">
-  <img src="figures/fig_slope_by_duration_group.png" alt="H2 slope by duration group for all, negative and positive shocks" width="85%">
+  <img src="images/fig_slope_by_duration_group.png" alt="H2 slope by duration group for all, negative and positive shocks" width="85%">
 </p>
 
 *H2 slope of the 20-day excess return on the shock by duration group (G1 low, G2 mid, G3 high), for all shocks and separately for negative and positive shocks. Bars are 95% confidence intervals clustered by ISIN. Positive shocks reverse more than negative ones in the low and mid groups; in the high group the difference is not significant (p = 0.23).*
