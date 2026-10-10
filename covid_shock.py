@@ -1,20 +1,4 @@
 """
-IDEA 1 - COVID WINDOWS  (H1 and H2 across four sub-periods)
-============================================================
-
-Follows the written workflow exactly:
-
-  Days 5-6   `window` column: Pre-COVID (Jan 2019-Feb 2020), Crisis (Mar-Dec 2020),
-             Recovery (2021-2022), Post-Recovery (2023-2026);
-             raw-dY vs residual-shock decomposition for 2020 (year-by-year slopes)
-  Days 7-10  H1 and H2 regressions separately on each window;
-             formal structural-break test (window dummies x regressor, joint Wald);
-             2020 decomposition: raw |dY| vs government-adjusted |shock|
-  Days 11-13 SEs clustered by ISIN in EVERY regression;
-             shuffled-shock placebo;
-             active-bond placebo (gap <= 5) by window;
-             N per cell; drop-top-5-ISINs check
-
 Model definitions (assumed from the workflow text - edit below if the paper differs):
   H1 : |dY| (or |shock|) = a + b * log(1 + gap)          all events
   H2 : ER20 = a + b * Shock                               stale bonds, gap >= 20
@@ -22,10 +6,6 @@ Model definitions (assumed from the workflow text - edit below if the paper diff
 
 Input : events_full.csv
 Output: CSV tables + summary.txt + one figure, written to --out
-
-Usage:
-    python idea1_covid_windows.py --data events_full.csv
-    python idea1_covid_windows.py --data events_full.csv --out results_idea1 --n-perm 1000
 
 Requires: pandas, numpy, statsmodels (matplotlib optional, for the figure)
 """
@@ -41,9 +21,9 @@ import statsmodels.formula.api as smf
 
 warnings.filterwarnings("ignore")
 
-# ----------------------------------------------------------------------------
+
 # Configuration
-# ----------------------------------------------------------------------------
+
 REQUIRED_COLS = [
     "isin", "date", "gap", "raw_dy", "gov_shock", "g_t", "g_t0", "er_20",
     "vwap_yield", "prev_yield", "vwap_price", "prev_price",
@@ -71,9 +51,9 @@ def show(title, df):
     say(df.to_string(index=False, float_format=lambda v: f"{v:,.4f}"))
 
 
-# ----------------------------------------------------------------------------
+
 # Loading and sample construction
-# ----------------------------------------------------------------------------
+
 def load_data(path):
     if not os.path.isfile(path):
         raise FileNotFoundError(
@@ -130,9 +110,9 @@ def build_sample(df):
     return df.reset_index(drop=True), pd.DataFrame(flow, columns=["step", "rows"])
 
 
-# ----------------------------------------------------------------------------
+
 # Regression helpers (all use SEs clustered by ISIN)
-# ----------------------------------------------------------------------------
+
 def fit(d, formula, needed):
     cols = list(dict.fromkeys(list(needed) + ["isin"]))
     sub = d.dropna(subset=cols)
@@ -281,9 +261,9 @@ def make_figure(h1, h2, path):
     plt.close(fig)
 
 
-# ----------------------------------------------------------------------------
+
 # Main
-# ----------------------------------------------------------------------------
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Idea 1: COVID windows for H1 and H2")
     ap.add_argument(
@@ -313,7 +293,7 @@ def main(argv=None):
     active = d[(d["gap"] <= ACTIVE_MAX_GAP) & d["shock"].notna() & d["er20"].notna()]
     matched = d[d["matched"]]
 
-    # --- N per cell ------------------------------------------------------------
+    # N per cell
     cells = []
     for w in WINDOWS:
         sub = d[d["window"] == w]
@@ -328,7 +308,7 @@ def main(argv=None):
     t_cells = pd.DataFrame(cells)
     show("N per cell (window)", t_cells)
 
-    # --- Days 7-10: H1 by window ------------------------------------------------
+    # H1 by Window
     rows = []
     rows += by_window(d, "abs_raw ~ log1p_gap", "log1p_gap", "abs_raw",
                       {"spec": "A: raw |dY| (all events)"})
@@ -341,12 +321,12 @@ def main(argv=None):
     t_h1 = pd.DataFrame(rows)
     show("H1: |move| = a + b*log(1+gap), by window (ISIN-clustered)", t_h1)
 
-    # --- Days 7-10: H2 by window ------------------------------------------------
+    # H2 by Window
     t_h2 = pd.DataFrame(by_window(h2, "er20 ~ shock", "shock", "er20",
                                   {"spec": "ER20 ~ Shock (gap >= 20)"}))
     show("H2: ER20 = a + b*Shock, by window (ISIN-clustered)", t_h2)
 
-    # --- Days 7-10: structural-break tests --------------------------------------
+    # Structural Break Wald Test
     t_break = pd.DataFrame([
         break_test(d, "log1p_gap", "abs_raw", "H1 raw |dY| (all events)"),
         break_test(matched, "log1p_gap", "abs_shock", "H1 adjusted |shock|"),
@@ -354,7 +334,7 @@ def main(argv=None):
     ])
     show("Structural break: Wald tests on window interactions (base = pre-COVID)", t_break)
 
-    # --- Days 5-10: 2020 decomposition (year-by-year) ---------------------------
+    
     yrows = []
     for yr in sorted(d["year"].unique()):
         ys = d[d["year"] == yr]
@@ -387,7 +367,7 @@ def main(argv=None):
     t_dec = pd.DataFrame(dec)
     show("2020 only, same events: raw vs G-sec vs residual", t_dec)
 
-    # --- Days 11-13: robustness -------------------------------------------------
+    # Robustness Test
     t_plc = pd.DataFrame(shuffle_placebo(h2, args.n_perm, args.seed))
     show(f"Shuffled-shock placebo on H2 ({args.n_perm} permutations)", t_plc)
 
@@ -401,7 +381,7 @@ def main(argv=None):
                                     {"spec": "H2, top-5 ISINs dropped"}))
     show("Robustness: H2 with the 5 largest ISINs dropped", t_drop)
 
-    # --- Save --------------------------------------------------------------------
+    
     tables = {
         "t0_sample_flow.csv": flow, "t1_cell_counts.csv": t_cells,
         "t2_h1_by_window.csv": t_h1, "t3_h2_by_window.csv": t_h2,
