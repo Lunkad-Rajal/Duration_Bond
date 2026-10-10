@@ -1,29 +1,7 @@
 """
-IDEA 4 - DURATION HETEROGENEITY  (H2 sample: stale bonds, gap >= 20 days)
-==========================================================================
-
-Follows the written workflow exactly:
-
-  Days 5-6   form duration terciles (or quintiles) on the H2 sample and build
-             the interaction term  Shock x Duration
-  Days 7-10  (a) ER20 = a + b*Shock, run separately per duration group
-             (b) ER20 = a + b1*Shock + b2*(Shock x Duration) + b3*Duration
-             (c) asymmetry: positive vs negative shocks within each group
-  Days 11-13 (a) SEs clustered by ISIN in EVERY regression
-             (b) shuffled-shock placebo
-             (c) N per cell
-             (d) terciles vs security type (re-run within sec_type)
-             (e) concentration check: drop the 5 largest issuers
-             (f) investment-grade-only re-run -> NOT possible: the files have
-                 no rating column (the workflow says "if you have coverage")
-
 Input : h2_sample.csv  (or events_full.csv - the H2 filter is re-applied, so
         either file gives the same sample)
 Output: CSV tables + summary.txt + one figure, written to --out
-
-Usage:
-    python idea4_duration_heterogeneity.py --data h2_sample.csv
-    python idea4_duration_heterogeneity.py --data h2_sample.csv --n-groups 5 --out results_q5
 
 Requires: pandas, numpy, statsmodels (matplotlib optional, for the figure)
 """
@@ -39,9 +17,9 @@ import statsmodels.formula.api as smf
 
 warnings.filterwarnings("ignore")
 
-# ----------------------------------------------------------------------------
+
 # Configuration
-# ----------------------------------------------------------------------------
+
 REQUIRED_COLS = [
     "isin", "issuer", "sec_type", "gap", "raw_dy", "gov_shock", "er_20",
     "duration", "vwap_yield", "prev_yield", "vwap_price", "prev_price",
@@ -70,9 +48,9 @@ def show(title, df):
     say(df.to_string(index=False, float_format=lambda v: f"{v:,.4f}"))
 
 
-# ----------------------------------------------------------------------------
+
 # Loading and sample construction
-# ----------------------------------------------------------------------------
+
 def load_data(path):
     if not os.path.isfile(path):
         raise FileNotFoundError(
@@ -147,9 +125,9 @@ def assign_groups(d, k):
     return codes.map(mapping).astype(object), names
 
 
-# ----------------------------------------------------------------------------
+
 # Regression helpers (all use SEs clustered by ISIN)
-# ----------------------------------------------------------------------------
+
 def fit(d, formula, needed):
     """OLS with ISIN-clustered SEs. Returns (result_or_None, n_obs, n_clusters)."""
     cols = list(dict.fromkeys(list(needed) + ["isin"]))
@@ -197,9 +175,9 @@ def subset(d, gcol, g):
     return d if g == "ALL" else d[d[gcol] == g]
 
 
-# ----------------------------------------------------------------------------
+
 # Analyses
-# ----------------------------------------------------------------------------
+
 def cell_counts(d, gcol):
     out = (
         d.groupby([gcol, "side"])
@@ -333,9 +311,9 @@ def make_figure(t_groups, t_asym, path):
     plt.close(fig)
 
 
-# ----------------------------------------------------------------------------
+
 # Main
-# ----------------------------------------------------------------------------
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Idea 4: duration heterogeneity in the H2 sample")
     ap.add_argument(
@@ -365,23 +343,23 @@ def main(argv=None):
     cuts = d.groupby("dur_grp")["duration"].agg(["min", "max", "count"]).reset_index()
     show("Duration group boundaries (years)", cuts)
 
-    # --- Days 11-13: N per cell --------------------------------------------
+    
     t_cells = cell_counts(d, "dur_grp")
     show("N per cell (duration group x shock sign)", t_cells)
 
-    # --- Days 7-10 (a): per-group regression --------------------------------
+    
     t_groups = pd.DataFrame(group_regressions(d, "dur_grp", groups, meta={"spec": "ER20 ~ Shock"}))
     show("(a) ER20 = a + b*Shock, by duration group (ISIN-clustered)", t_groups)
 
-    # --- Days 7-10 (b): fully interacted ------------------------------------
+    
     t_inter = pd.DataFrame(interacted_models(d))
     show("(b) Interacted model: ER20 = a + b1*Shock + b2*(Shock x Duration) + b3*Duration", t_inter)
 
-    # --- Days 7-10 (c): asymmetry -------------------------------------------
+    
     t_asym = pd.DataFrame(asymmetry(d, "dur_grp", groups))
     show("(c) Asymmetry: positive vs negative shocks within each duration group", t_asym)
 
-    # --- Days 11-13: robustness ---------------------------------------------
+    
     t_plc = pd.DataFrame(shuffle_placebo(d, "dur_grp", groups, args.n_perm, args.seed))
     show(f"Shuffled-shock placebo ({args.n_perm} permutations)", t_plc)
 
@@ -408,7 +386,7 @@ def main(argv=None):
             meta={"spec": "fwd_resid_dy_20 ~ Shock (yield space)"}))
         show("Supplement: same regression in yield space (ER20 = -duration x fwd_resid_dy_20)", t_yield)
 
-    # --- Save -----------------------------------------------------------------
+    
     tables = {
         "t0_sample_flow.csv": flow, "t0_duration_cuts.csv": cuts,
         "t1_cell_counts.csv": t_cells, "t2_group_regressions.csv": t_groups,
