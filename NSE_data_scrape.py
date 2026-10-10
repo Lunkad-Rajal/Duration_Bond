@@ -16,9 +16,9 @@ from curl_cffi import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("nse_scraper")
 
-# ---------------------------------------------------------------------------
+
 # SETTINGS
-# ---------------------------------------------------------------------------
+
 START_DATE = date(2019, 1, 1)
 END_DATE = date(2026, 8, 31)
 OUT_DIR = Path(r"C:\A - Personal\User\UnderGrad\MBFM Project\Datasets\raw_data")
@@ -37,7 +37,7 @@ REPORT_WDM_BHAVCOPY = {
     "category": "debt",
     "section": "debt-segment",
 }
-# Unconfirmed - update name/section once you've Inspected the real link
+
 REPORT_CBM_SECURITY_MASTER = {
     "name": "CBM - Security Master",
     "type": "archives",
